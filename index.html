@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Valet Trash Dispatch & Verification</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-slate-100 font-sans text-slate-800">
+
+    <div class="max-w-md mx-auto min-h-screen bg-white shadow-xl flex flex-col">
+        <!-- Header -->
+        <header class="bg-indigo-600 text-white p-4 flex items-center justify-between">
+            <div>
+                <h1 class="font-bold text-lg">TrashValet Pro</h1>
+                <p class="text-xs text-indigo-200">Oakridge Apartments • Zone A</p>
+            </div>
+            <div id="role-badge" class="bg-indigo-800 text-xs px-2.5 py-1 rounded-full font-medium">
+                Resident View
+            </div>
+        </header>
+
+        <!-- Navigation / Role Switcher -->
+        <div class="bg-slate-200 p-2 flex text-xs font-semibold justify-around">
+            <button onclick="switchRole('resident')" id="btn-resident" class="py-1.5 px-3 rounded bg-white text-indigo-700 shadow">1. Resident Request</button>
+            <button onclick="switchRole('worker')" id="btn-worker" class="py-1.5 px-3 rounded text-slate-600">2. Staff Route</button>
+            <button onclick="switchRole('admin')" id="btn-admin" class="py-1.5 px-3 rounded text-slate-600">3. Office Dashboard</button>
+        </div>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="flex-1 p-4 overflow-y-auto">
+
+            <!-- 1. RESIDENT VIEW -->
+            <div id="view-resident" class="space-y-4">
+                <div class="bg-amber-50 border-l-4 border-amber-500 p-3 rounded text-amber-800 text-sm">
+                    <i class="fa-solid fa-clock mr-1"></i> Tonight's Cutoff: <span class="font-bold">7:00 PM</span>
+                </div>
+
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+                    <i class="fa-solid fa-trash-can text-4xl text-indigo-500 mb-2"></i>
+                    <h2 class="font-semibold text-lg text-slate-800">Leaving trash out tonight?</h2>
+                    <p class="text-xs text-slate-500 mb-4">Notify the maintenance team before 7:00 PM so your unit is included on tonight's route.</p>
+
+                    <div id="resident-status">
+                        <button onclick="toggleTrashNotice()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg shadow-md transition">
+                            <i class="fa-solid fa-bell mr-2"></i> Notify Trash Ready (Unit 204)
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. WORKER / STAFF ROUTE VIEW -->
+            <div id="view-worker" class="space-y-4 hidden">
+                <div class="flex justify-between items-center bg-slate-800 text-white p-3 rounded-lg">
+                    <div>
+                        <div class="text-xs text-slate-400">Cutoff Reached • 7:00 PM</div>
+                        <div class="text-sm font-bold"><span id="pending-count">2</span> Units Scheduled</div>
+                    </div>
+                    <button onclick="resetDemo()" class="text-xs bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded">Reset Demo</button>
+                </div>
+
+                <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wider">Tonight's Pickup Route</h3>
+
+                <div id="unit-list" class="space-y-3">
+                    <!-- Units populated dynamically -->
+                </div>
+            </div>
+
+            <!-- 3. OFFICE / ADMIN DASHBOARD -->
+            <div id="view-admin" class="space-y-4 hidden">
+                <h3 class="font-bold text-slate-800 text-sm">Property Pickup Overview</h3>
+                
+                <div class="grid grid-cols-2 gap-2 text-center">
+                    <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-lg">
+                        <div class="text-2xl font-bold text-emerald-600" id="stat-completed">1</div>
+                        <div class="text-xs text-emerald-800 font-medium">Completed Pickups</div>
+                    </div>
+                    <div class="bg-amber-50 border border-amber-200 p-3 rounded-lg">
+                        <div class="text-2xl font-bold text-amber-600" id="stat-pending">1</div>
+                        <div class="text-xs text-amber-800 font-medium">Pending Pickup</div>
+                    </div>
+                </div>
+
+                <div class="border rounded-lg p-3 bg-white shadow-sm">
+                    <h4 class="text-xs font-bold text-slate-500 mb-2 uppercase">Live Verification Feed</h4>
+                    <div id="admin-feed" class="space-y-2 text-xs">
+                        <!-- Admin live log -->
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        let units = [
+            { id: '102', ready: true, status: 'pending', photo: null, time: null },
+            { id: '204', ready: false, status: 'not_requested', photo: null, time: null },
+            { id: '308', ready: true, status: 'completed', photo: 'https://picsum.photos/200?random=1', time: '7:15 PM' }
+        ];
+
+        function switchRole(role) {
+            document.getElementById('view-resident').classList.add('hidden');
+            document.getElementById('view-worker').classList.add('hidden');
+            document.getElementById('view-admin').classList.add('hidden');
+
+            document.getElementById('btn-resident').className = "py-1.5 px-3 rounded text-slate-600";
+            document.getElementById('btn-worker').className = "py-1.5 px-3 rounded text-slate-600";
+            document.getElementById('btn-admin').className = "py-1.5 px-3 rounded text-slate-600";
+
+            if (role === 'resident') {
+                document.getElementById('view-resident').classList.remove('hidden');
+                document.getElementById('btn-resident').className = "py-1.5 px-3 rounded bg-white text-indigo-700 shadow";
+                document.getElementById('role-badge').innerText = "Resident View";
+            } else if (role === 'worker') {
+                document.getElementById('view-worker').classList.remove('hidden');
+                document.getElementById('btn-worker').className = "py-1.5 px-3 rounded bg-white text-indigo-700 shadow";
+                document.getElementById('role-badge').innerText = "Staff Route";
+            } else {
+                document.getElementById('view-admin').classList.remove('hidden');
+                document.getElementById('btn-admin').className = "py-1.5 px-3 rounded bg-white text-indigo-700 shadow";
+                document.getElementById('role-badge').innerText = "Office Dashboard";
+            }
+            render();
+        }
+
+        function toggleTrashNotice() {
+            let unit = units.find(u => u.id === '204');
+            unit.ready = !unit.ready;
+            unit.status = unit.ready ? 'pending' : 'not_requested';
+            render();
+        }
+
+        function completePickup(id) {
+            let unit = units.find(u => u.id === id);
+            unit.status = 'completed';
+            unit.photo = 'https://picsum.photos/200?random=' + Math.floor(Math.random() * 100);
+            unit.time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            render();
+        }
+
+        function resetDemo() {
+            units = [
+                { id: '102', ready: true, status: 'pending', photo: null, time: null },
+                { id: '204', ready: false, status: 'not_requested', photo: null, time: null },
+                { id: '308', ready: true, status: 'completed', photo: 'https://picsum.photos/200?random=1', time: '7:15 PM' }
+            ];
+            render();
+        }
+
+        function render() {
+            // Render Resident Status
+            let unit204 = units.find(u => u.id === '204');
+            let resContainer = document.getElementById('resident-status');
+            if (unit204.ready) {
+                resContainer.innerHTML = `
+                    <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-800 text-sm mb-3">
+                        <i class="fa-solid fa-circle-check mr-1 text-emerald-600"></i> Scheduled for pickup tonight!
+                    </div>
+                    <button onclick="toggleTrashNotice()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium py-2 rounded-lg text-xs">
+                        Cancel Notification
+                    </button>
+                `;
+            } else {
+                resContainer.innerHTML = `
+                    <button onclick="toggleTrashNotice()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg shadow-md transition">
+                        <i class="fa-solid fa-bell mr-2"></i> Notify Trash Ready (Unit 204)
+                    </button>
+                `;
+            }
+
+            // Render Worker Route
+            let workerContainer = document.getElementById('unit-list');
+            let pendingUnits = units.filter(u => u.ready);
+            document.getElementById('pending-count').innerText = pendingUnits.filter(u => u.status === 'pending').length;
+
+            workerContainer.innerHTML = pendingUnits.map(unit => {
+                if (unit.status === 'completed') {
+                    return `
+                        <div class="bg-slate-50 border border-slate-200 p-3 rounded-lg flex items-center justify-between opacity-75">
+                            <div>
+                                <span class="font-bold text-slate-700">Unit ${unit.id}</span>
+                                <div class="text-xs text-emerald-600 font-medium"><i class="fa-solid fa-check"></i> Completed at ${unit.time}</div>
+                            </div>
+                            <img src="${unit.photo}" class="w-10 h-10 rounded object-cover border" alt="Proof">
+                        </div>
+                    `;
+                } else {
+                    return `
+                        <div class="bg-white border-2 border-indigo-200 p-3 rounded-lg flex items-center justify-between shadow-sm">
+                            <div>
+                                <span class="font-bold text-slate-900 text-lg">Unit ${unit.id}</span>
+                                <div class="text-xs text-amber-600 font-medium"><i class="fa-solid fa-location-dot"></i> Trash Out</div>
+                            </div>
+                            <button onclick="completePickup('${unit.id}')" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-2 rounded-md font-semibold flex items-center gap-1">
+                                <i class="fa-solid fa-camera"></i> Snap & Clear
+                            </button>
+                        </div>
+                    `;
+                }
+            }).join('');
+
+            // Render Admin Stats
+            let completed = units.filter(u => u.status === 'completed').length;
+            let pending = units.filter(u => u.status === 'pending').length;
+            document.getElementById('stat-completed').innerText = completed;
+            document.getElementById('stat-pending').innerText = pending;
+
+            let adminFeed = document.getElementById('admin-feed');
+            adminFeed.innerHTML = units.filter(u => u.status === 'completed').map(u => `
+                <div class="flex justify-between items-center bg-slate-50 p-2 rounded border">
+                    <div>
+                        <span class="font-bold">Unit ${u.id}</span> cleared
+                        <span class="text-slate-400 block text-[10px]">${u.time}</span>
+                    </div>
+                    <span class="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded">Verified</span>
+                </div>
+            `).join('');
+        }
+
+        render();
+    </script>
+</body>
+</html>
